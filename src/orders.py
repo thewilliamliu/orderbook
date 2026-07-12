@@ -1,9 +1,4 @@
-"""Domain objects for the order book — the shared vocabulary.
-
-An `Order` is someone's intent to buy or sell; a `Trade` is the record of two
-orders matching. These are plain data holders (see DESIGN.md §1); all logic
-lives in the OrderBook.
-"""
+"""Domain objects shared across the exchange: Side, Order, Trade."""
 
 from __future__ import annotations
 
@@ -12,44 +7,28 @@ from enum import Enum
 
 
 class Side(Enum):
-    """Which side of the book an order is on."""
-
     BUY = 1
     SELL = 2
 
     @property
     def opposite(self) -> "Side":
+        # The other side of the book.
         return Side.SELL if self is Side.BUY else Side.BUY
 
 
 @dataclass
 class Order:
-    """A resting or incoming order.
-
-    Prices are integer ticks (never floats) so comparisons and dict-keying are
-    exact. `quantity` is the *remaining* size and shrinks as the order fills.
-    `seq` is a monotonically increasing arrival counter assigned by the
-    exchange — it encodes time priority and, unlike a wall-clock timestamp, can
-    never tie.
-    """
-
-    id: int
-    side: Side
-    price: int
-    quantity: int
-    seq: int
+    id: int          # Unique ID assigned by the exchange.
+    side: Side       # Buy or sell.
+    price: int       # Integer ticks; ignored for market orders.
+    quantity: int    # Remaining quantity, decremented as the order fills.
+    timestamp: int   # Monotonically increasing arrival counter (time priority).
 
 
 @dataclass
 class Trade:
-    """The record of one match: `quantity` shares changed hands at `price`.
-
-    `price` is always the *resting* order's price (price-time priority — the
-    order that was there first sets the terms). `seq` orders trades in time.
-    """
-
-    buy_id: int
-    sell_id: int
-    price: int
-    quantity: int
-    seq: int
+    buy_id: int      # ID of the order on the buy side.
+    sell_id: int     # ID of the order on the sell side.
+    price: int       # The resting order's price (price-time priority).
+    quantity: int    # Shares exchanged.
+    timestamp: int   # Monotonically increasing event counter.
