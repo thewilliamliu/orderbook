@@ -1,13 +1,9 @@
 """Artificial order flow: noise traders and informed traders."""
 
 from __future__ import annotations
-
 from dataclasses import dataclass
-
 import numpy as np
-
 from orders import Side
-
 
 @dataclass
 class OrderIntent:
@@ -26,18 +22,16 @@ def noise_order(
     jitter_width: int,
     size: int,
 ) -> OrderIntent:
-    side = Side.BUY if rng.random() < 0.5 else Side.SELL
-    if rng.random() < market_prob:
+    side = Side.BUY if rng.random() < 0.5 else Side.SELL # Flip a coin for the side.
+    if rng.random() < market_prob: # Flip a coin for whether its a market order.
         return OrderIntent(side, True, None, size)
-    jitter = int(rng.integers(-jitter_width, jitter_width + 1))
+    jitter = int(rng.integers(-jitter_width, jitter_width + 1)) # Jitter near the mid if limit/resting.
     return OrderIntent(side, False, round(mid) + jitter, size)
 
 
 # An informed trader: sees the future fair value and sends a market order in
 # the profitable direction, or None when the edge is below the threshold.
-def informed_order(
-    mid: float, future_v: float, threshold: float, size: int
-) -> OrderIntent | None:
+def informed_order(mid: float, future_v: float, threshold: float, size: int) -> OrderIntent | None:
     edge = future_v - mid
     if edge > threshold:
         return OrderIntent(Side.BUY, True, None, size)

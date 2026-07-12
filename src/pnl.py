@@ -1,9 +1,7 @@
 """PnL bookkeeping and the spread / inventory / adverse-selection decomposition."""
 
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-
 from orders import Side
 
 
@@ -22,9 +20,7 @@ class PnLTracker:
     fills: list[Fill] = field(default_factory=list)
 
     # Record one market-maker fill. mm_side is the side the MM traded on.
-    def record(
-        self, price: int, size: int, mm_side: Side, fair_value: float, informed: bool
-    ) -> None:
+    def record(self, price: int, size: int, mm_side: Side, fair_value: float, informed: bool) -> None:
         s = size if mm_side is Side.SELL else -size
         self.cash += price * s
         self.inventory -= s

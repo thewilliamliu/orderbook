@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-
 @dataclass
 class SimConfig:
     n_ticks: int = 4000          # Number of ticks to simulate.

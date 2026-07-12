@@ -29,25 +29,21 @@ class Results:
 
 class Simulator:
     # Run one simulation of a market maker against generated flow.
-    def run(
-        self, market_maker: MarketMaker, config: SimConfig, rng: np.random.Generator
-    ) -> Results:
+    def run(self, market_maker: MarketMaker, config: SimConfig, rng: np.random.Generator) -> Results:
         cfg = config
         book = OrderBook()
         tracker = PnLTracker()
 
         # Fair value needs k extra steps so informed traders can look ahead.
-        v_path = random_walk_path(
-            cfg.initial_price, cfg.sigma, cfg.n_ticks + cfg.k, rng
-        )
+        v_path = random_walk_path(cfg.initial_price, cfg.sigma, cfg.n_ticks + cfg.k, rng)
 
         mm_ids: set[int] = set()
         informed_ids: set[int] = set()
-        flow_window: deque[int] = deque(maxlen=cfg.flow_window)
-        quote_ids: list[int] = []
-        last_mid = float(cfg.initial_price)
+        flow_window: deque[int] = deque(maxlen=cfg.flow_window) # Holds only the latest flow_window amount.
+        quote_ids: list[int] = [] # The two current quote IDs (bid and ask) of the MM.
+        last_mid = float(cfg.initial_price) # In case there is no current mid, falls back on this.
 
-        ticks = np.arange(cfg.n_ticks)
+        ticks = np.arange(cfg.n_ticks) 
         mid_log = np.empty(cfg.n_ticks)
         inv_log = np.empty(cfg.n_ticks)
         pnl_log = np.empty(cfg.n_ticks)
@@ -65,6 +61,7 @@ class Simulator:
                 mid = last_mid
             flow_signal = sum(flow_window)
 
+            # Get the quote, post/record it.
             bid_px, bid_sz, ask_px, ask_sz = market_maker.quote(
                 mid, tracker.inventory, flow_signal
             )
@@ -73,7 +70,7 @@ class Simulator:
             self._post_quote(book, Side.SELL, ask_px, ask_sz, mm_ids, quote_ids,
                              informed_ids, tracker, v_now, flow_window, is_mm=True)
 
-            # Generate this tick's arrivals: noise flow plus a possible shark.
+            # Generate/record this tick's noise orders using Poisson distribution.
             n_noise = rng.poisson(cfg.lam)
             for _ in range(n_noise):
                 intent = noise_order(
@@ -81,6 +78,8 @@ class Simulator:
                 )
                 self._submit_intent(book, intent, False, mm_ids, informed_ids,
                                     tracker, v_now, flow_window)
+
+            # Occassional arrival of an informed trader. 
             if rng.random() < cfg.p:
                 intent = informed_order(
                     mid, v_path[t + cfg.k], cfg.threshold, cfg.informed_size
@@ -89,14 +88,19 @@ class Simulator:
                     self._submit_intent(book, intent, True, mm_ids, informed_ids,
                                         tracker, v_now, flow_window)
 
+            # Update mid values as needed.
             current_mid = book.mid()
             if current_mid is not None:
                 last_mid = current_mid
+
+            # Record information: mid, inventory, PnL.
             mid_log[t] = last_mid
             inv_log[t] = tracker.inventory
             pnl_log[t] = tracker.total_pnl(v_now)
 
+        # Get the final value of V (convert back to Python float).
         final_value = float(v_path[cfg.n_ticks - 1])
+
         return Results(
             ticks=ticks,
             fair_value=v_path[: cfg.n_ticks],

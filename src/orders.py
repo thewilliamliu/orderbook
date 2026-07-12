@@ -1,14 +1,13 @@
-"""Domain objects shared across the exchange: Side, Order, Trade."""
+"""Domain objects shared across the project. Side, Order, Trade."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
 
-
 class Side(Enum):
-    BUY = 1
-    SELL = 2
+    BUY = 0
+    SELL = 1
 
     @property
     def opposite(self) -> "Side":
