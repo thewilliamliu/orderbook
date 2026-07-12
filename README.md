@@ -1,10 +1,14 @@
-*William Liu* --- `June/July 2026`
+
+### 
+### README.md
+
+*William Liu* --- `July 2026`
 
 This README is divided into a few sections of interest. 
 - table of contents in progress
 
 ## Project Background
-#### high level overview
+### high level overview
 
 My goal is in this project is to deliver a GitHub repo and set of experiments that involve:
 - A **matching engine** --- accepts limit orders, market orders, etc and emits trades
@@ -26,7 +30,7 @@ Before I began building this, I wanted to have a deeper understanding of the fun
 
 I then summarized some key points of these readings in the next section below.
 
-#### markets and limit order books
+### markets and limit order books
 
 Any market in human history requires buyers and sellers. They must make a trade at a price that is fair to both. The goal of any market is to pool this activity in one, efficient place that allows for liquidity and price discovery.
 
@@ -60,7 +64,7 @@ The ==**spread**== is the gap between the best bid and the best ask.
 - Market makers try to "earn the spread" by buying at a low price and selling at a high one -- they insert themselves into the market here and earn a few cents every time.
 	- They try to be on both sides, otherwise they'll hold a bunch of shares -- "left holding the bag."
 - We can also define the **mid price**, which is a useful marker for where the market is.
-$$ \text{mid price} = \frac{\text{best bid} + \text{best ask}}{2}$$
+$$ m=\text{mid price} = \frac{\text{best bid} + \text{best ask}}{2}$$
 
 Orders can be either passive or aggressive with respect to the spread:
 - ==**Passive**==: they don't cross the market price, e.g. their $\text{limit price < best ask price}$, or their $\text{limit price > best bid price}$
@@ -107,7 +111,7 @@ We can think about **==depth of liquidity==** of a market by calculating an impa
 	- starts at 0 at the mid price (all trades will have been executed)
 	- as you move outward, each side gains more cumulative liquidity since there are more buyers willing to buy low and more sellers willing to sell high
 
-#### glosten-milgrom model
+###  glosten-milgrom model
 
 There's a pretty well-known ==**Glosten-Milgrom model**== for market-makers that Claude told me about and I found interesting. It was also in a recent article by Matt Levine. Here is some context for that:
 
@@ -145,7 +149,7 @@ $$ S = a - b = P[I\mid \text{buy}] (v_H - E[v]) + P[I\mid\text{sell}](E[v] - v_L
 There are two insurance premiums here on both sides depending on if the informed trader buys/sells. If there is a higher $\mu$, or probability of the trader being informed, then there is a larger spread. 
 - In other words, *the spread is an insurance premium against informed flow*. 
 
-#### notes on inventory
+### notes on inventory
 
 **Avellaneda and Stoikov** did a study on a stock dealer's strategy when faced with inventory risk due to stock price and Poisson arrival of market buy/sell orders. 
 
@@ -157,11 +161,11 @@ In the literature, the common sources of risk facing the dealer are
 1. inventory risk arising from uncertainty in the asset's value
 2. asymmetric information arising from informed traders
 
-More specific math is implemented in the Python code itself, and seen below.
+I implement the specific math below in **part 3**.
 
 ## part 1: matching engine
 
-First, setting up straightforward classes for each **order**, each **trade**, and then the **book** itself. 
+First, setting up straightforward classes for each **order**, each **trade**, and then the **book** itself. This section contains very little math and is mostly SWE/DSA.
 
 ```
 class Order:
@@ -202,7 +206,7 @@ A few misc design choices here:
 	- this is because the person who is resting should get their price; an aggressor shouldn't have to pay more than the resting price even if they cross the spread
 - `submit_limit` and `submit_market` return a list of trades produced by that order, possibly empty
 - for `cancel`, I decided to let this return a boolean.
-,
+
 To satisfy such requirements, I chose the following data structures:
 - Time-priority sorting of orders: `collections.deque`
 	- FIFO -- queue when order arrives, pop when matched. $\Theta 1$ both ends
@@ -226,22 +230,27 @@ A few tests I'm planning on doing (more in the code)
 
 ## part 2: market simulator
 
-Now, setting up the actual players who create order flow. We will include "informed traders" and "noise traders," with the former knowing the actual fair value.
+Now, setting up the "synthetic world of traders." We will include "informed traders" and "noise traders," with the former knowing the actual fair value.
 
 Let $V$ be the fair value, the "correct" price given all the real information out there. 
 - Since $V$ is dependent on several market conditions --- and we can't build everything there is out there --- we will set $V$ on a random walk. 
-- Nobody in a real market *actually* knows the exact value of $V$, this is a "God-view" of the market.
-
-Let $m =$ mid value. (reminder: average between best bid/ask) 
-
-**Noise traders** trade for random reasons, set them on a random walk. 
-- reminder: market makers make money off these folks 
+- Nobody in a real market *actually* knows the exact value of $V$, this is a "God-view" of the market. Even the market-maker doesn't know (this is why it might lose money)
+- We can run a random walk with the correct value of $V$: 
 $$V(t+1) = V(t) + \sigma \cdot \epsilon_t$$
 	Let $\sigma=$ volatility per tick in price units. We can adjust this to determine how "wild" we want the market to be. 
-	$e_t = \text{Normal}(0, 1)$, independent each tick.
+	$e_t = \text{Normal}(0, 1)$, independent each tick. We choose a Gaussian/Normal distribution here since we want price movement to cluser around an average and move in both directions with roughly equal probability.
+	Thus, $E[V(t+1) \mid V(t)] = V(t)$. The expected value of the price tomorrow = today's price, since there is an equal probability it moves up vs. down.
+
+Let $m =$ mid value. (recall: average between best bid/ask) 
+
+**Noise traders** trade for random reasons, set them on a random walk. 
+- recall: market makers make money off these folks 
+- let $\theta =$ probability it sends in a market order. Otherwise, it will send in a limit order.
+$$\text{limit price}= m+j$$
+	Let $j=$ jitter, a small random integer. This is introduced so that the order book looks realistic (has orders all around the mid price, not just piling up at one level.) We can let $W=$ width of that jitter. 
 
 **Informed traders** peek the future -- even without an exact value, they know whether $V$ will rise or fall. Let $k =$ how many ticks into the future that they can see (higher = better hedge fund)
-- reminder: market makers lose money to these folks, **adverse selection**
+- recall: market makers lose money to these folks, **adverse selection**
 - they will make a market order always (they want immediacy since they're correct)
 Based on this info, we have
 - if $V(t+k) - m > 0$, send a market buy since the price will go up
@@ -251,9 +260,9 @@ Based on this info, we have
 In `src/traders.py`, we can let each of these be a function that returns an `Order` to feed the book. We also need a function that performs the random walk.
 
 ``` 
-def make_noise_order(mid, rng)
+def noise_order(mid, rng)
 
-def make_informed_order(mid, future_V)
+def informed_order(mid, future_V)
 
 def random_walk_step(V, sigma, rng) -> float
 ```
@@ -262,33 +271,81 @@ Then, for the actual simulator, we will create a class:
 
 ```
 class Simulator:
-	set[int]: list
-	log: 
-	
-	def run(self, market_maker, ticks, config, rng)
+		def run(self, market_maker, ticks, config, rng)
 ```
 
 A few notes here:
 - Like the earlier model, let $\mu$ be the probability that an informed trader shows up. For example, in a purely-noise world, $\mu = 0$. We will tweak this as an independent variable as we go.
-- The simulator has a `set[int]` that stores which order IDs are informed/not. Again, this is "god-like" information; the `Order` data type itself does not reveal anything about the trade. 
+- The simulator also will include a `set[int]` that stores which order IDs are informed/not. Again, this is "god-like" information; the `Order` data type itself does not reveal anything about the trade, and it shouldn't since this is realistic.
 
-We can model the arrival of orders using a Poisson distribution. That is, the number of noise orders in one tick is $N \sim \text{Poisson}(\lambda)$. More precisely:
+We can model the arrival of orders using a Poisson distribution (good for discrete, modelling # of times something might occur). That is, the number of noise orders in one tick is $N \sim \text{Poisson}(\lambda)$. More precisely:
 $$ P(N=n)=e^{(-\lambda)} \cdot \lambda^n / n!$$
 	This has mean $E[N] = \lambda$.
-	$\lambda=$ expected orders per tick. This is "how busy" the market is.
+	$\lambda=$ expected orders per tick. This is "how busy" the market is on average, and we can adjust this to optimize for load-maxxing.
 
 Now, let there be $n$ ticks. For each tick $t$, we'll do the following:
 - Advance the fair value: set $V(t)$ to $V(t+1)$. 
-- Market maker observes the book and posts a new bid $b$ and ask $a$. 
+- Market maker observes the book and posts a new bid/ask.
 - Generate the orders for this tick (noise/informed based probability $\mu$). Send them to the book in the order they are created. They trade against the MM's quotes + each other.
 - Log the trades, $V$, mid, inventory, and cash. Compile all the logs into a `results` thing that the method returns.
 
 ## part 3: market maker
 
-Now, designing the market maker. 
+Now, designing the market maker. We want this entity to post a **bid** $= b$ and an **ask** $= a$. In order for the market maker to be profitable on trades, they need $a-b>0$. Two things threaten this simple model for making money.
+1. Inventory --- if the market maker tilts too much towards one side, then it develops a position and is threatened in case the market moves drastically.
+2. Adverse selection --- too many informed traders.
+
+The useful thing for our class to have is a method that returns the current quote: specifically, the bid price/size and the ask price/size.
 
 ```
 class MarketMaker:
-	def quote(self, mid, inventory, flow_signal) --> 
+    def quote(self, mid, inventory, flow_signal) 
 ```
+
+We will experiment with three separate models of market makers to determine which is the best.
+
+**MM v0**. This market maker is the most naive, has no memory, and merely trades off of half the spread. Let $h=$ half spread. 
+- This makes intuitive sense: if $h$ increases, the MM makes more per fill, but there are less fills since prices are not attractive for either side. If $h$ decreases, the converse occurs.
+$$b = m - h \hspace{35pt} a = m+h$$
+
+**MM v1**. This market maker takes into account the inventory problem. It centers quotes on a shifted $r=$ *reservation price* instead of the mid.
+- If $\text{inventory}>0$, then $r<m$ so both quotes move down. This intuitively works because the MM wants to shed a long position. Conversely, if  $\text{inventory}<0$, then $r>m$, so both quotes move up. That works so the MM gains inventory it needs.
+- Let $\gamma=$ the inventory aversion multiplier. The higher it is, the harder the MM fights to stay flat. But if $\gamma$ is too high, the quotes will shift and they'll capture less spread.
+$$ r = m - \gamma \cdot \text{inventory}$$$$ b = r -h \hspace{35pt} a = r + h$$
+**MM v2.** This market maker tries to deal with adverse selection and minimize its risk. It memorizes the last $L$ trades, adds up signed sizes of trades. Let $f=$ this sum of trades. This is effective: over a long period of time, noise bets will not have a direction, but informed traders might. If the latter occurs, MM tries to adjust. 
+$$f = \sum_{\text{recent trades}} \pm (\text{size})$$
+- From this, we have that $|f|$ gives us a size of the imbalance in one direction or the other.
+- If more the flow is lopsided, the more the MM must widen the spread to correct for this (in both directions). That means it will make more money *per trade* due to the influx of informed traders. 
+- Let $\beta=$ toxicity multiplier. That is, how sharply the MM will recoil from one-sided flow. $$h_{\text{adjusted}}=h+ \beta \cdot |f|$$
+## experiment setup and procedure
+
+First, **notation**. Let us index the MM's fills by $i$. For each fill, let $P_i$ be the executed price, $V_i$ be the true fair value at that instant, and $q_i$ the quantity. We will use the following sign conventions for the size of the trade (which we will denote via $s$)
+$$s_i=\begin{cases}+q_i && \text{if the MM sold}\\-q_i && \text{if the MM bought}\end{cases}$$
+	The change in inventory is precisely the opposite of this -- if the MM sells, then inventory should decrease, so $\Delta I_i = -s_i$. 
+	The change in cash is in fact this. If the MM sells, then cash should increase.
+
+We are ultimately interested in **PnL**: profit and loss, which we denote $\Pi$. This is comprised of the change in cash (first term) + the value of the final inventory at the end of the period (the second term). Note that $V_T =$ the true value at the end of the period.
+$$\begin{align} \Pi &= \sum_i P_i s_i + (-\sum_i s_i)V_T \\ &= \sum_is_i(P_i - V_T)\end{align}$$Now, since $P_i - V_T = (P_i - V_i) + (V_i - V_T)$, we can rewrite this as:  $$ \Pi = \sum_i s_i(P_i - V_i) + \sum_i s_i(V_i - V_T) $$
+- The first term here directly corresponds to the **spread capture**. The $i$-th trade is only positive when:
+	- the MM buys below fair (it is getting a good deal), that is $P_i < V_i, s_i < 0$ 
+	- the MM sells above fair (it is getting a good deal again), $P_i > V_i, s_i > 0$ 
+- The second term corresponds to the **inventory MTM**: what the market did to the position afterward. 
+	- If the MM is long and the stock rises, then $V_i - V_T<0$ and $s_i < 0$, so positive.
+	- If the MM is long and the stock falls, then $V_i - V_T > 0$ and $s_i < 0$, so negative.
+	- The other two cases are proven the same way.
+
+We can then restrict this to fills with *only informed traders* to measure our **adverse selection** **losses.**  We write:
+$$\text{loss to adverse selection} = \sum_{i \in \text{informed}} s_i(V_i - V_T)<0$$
+	Notice this quantity *must* be negative. Informed traders will only sell when $(V_i - V_T)>0$ so $s_i < 0$ or buy when $(V_i - V_T) < 0$ so $s_i > 0$. In both scenarios, it strictly contributes to an overall loss for the MM.
+
+Logistically, we aim to store the following in the `experiments/` section (to start)
+1. PnL over time for MM-0-1-2 to see the differences at a fixed $p$. 
+2. Final PnL vs. $\mu \in \{0, 0.05, 0.1, 0.2\}$ etc, one curve per MM. This allows us to see how different MMs are better stacked against better traders.
+3. Inventory over time, comparing MM v0 vs MM v1.
+
+### assumptions
+
+## results and discussion
+
+
 
