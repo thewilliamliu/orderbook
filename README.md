@@ -6,9 +6,9 @@ A from-scratch limit order book, market simulator, and market-making experiment.
 
 ## abstract
 
-`orderbook-lab` is a from-scratch **limit order book**, **market simulator**, and **market-making experiment**. I built a price-time-priority matching engine (limit orders, market orders, cancels), a synthetic market of *noise* and *informed* traders driven by a latent random-walk fair value, and three market makers of increasing sophistication: a fixed-spread baseline (MM0), an inventory-skewing maker (MM1), and one that also widens its spread when order flow turns toxic (MM2). The experiment decomposes each maker's profit into **spread capture** versus **adverse-selection loss** as the share of informed flow rises. The results show that the the naive maker earns **+18k ticks** in a pure-noise market but its PnL **collapses to −157k** once 20% of flow is informed; inventory skew and the toxicity filter recover essentially all of that loss, holding near **+18k** at every level.
+`orderbook-lab` is a limit order book, market simulator, and market-making experiment. I attempt to build a price-time-priority matching engine (users can submit limit orders, market orders, and cancels), simulate a synthetic market of noise and informed traders driven by a latent random-walk fair value, and three market makers of increasing sophistication: a fixed-spread baseline (MM v0), one that takes inventory into account (MM v1), and one that also widens its spread to counter adverse selection losses (MM v2). I decompose each MM's profit into spread capture versus adverse-selection loss as the share of informed flow rises to see how they perform against "expert" traders. The results show that the the naive maker earns 18K ticks in a pure-noise market but its PnL collapses to −157K once 20% of flow is informed; inventory skew and the toxicity filter combat all of that loss, still bringing in **+18k** even against informed traders. 
 
-**Highlights**
+**highlights**
 
 - 42 successful tests (`pytest`) --- matching-engine correctness, the exact PnL identity, and simulator determinism.
 - Experiment: 3 market makers × 4 informed-flow levels ($p \in \{0, 0.05, 0.1, 0.2\}$) × 10 seeds → 3 figures and a decomposition table.
@@ -35,7 +35,7 @@ Why I'm doing this: I read recently about market-makers in Matt Levine's *Money 
 
 Also, such a project seemed relevant since I've seen a fair share of "things to build for quant finance" in my reels. That prompted some research out of me; by research, I mean asking Claude what this was about, talking to some friends at Citadel/HRT, and finally, concluding that this project would be productive for my own learning and career goals.
 
-## Reading
+## reading
 
 Before I began building this, I wanted to have a deeper understanding of the fundamentals at play. So I read the following materials, in no intentional order:
 - Jean-Philippe Bouchard, *Trades, Quotes, and Prices*, chapters 3-5
