@@ -5,20 +5,9 @@ out of the main [README](README.md) to keep it focused. None of this is required
 understand the code or the results — it's the conceptual grounding, in my own words.
 
 ## Table of contents
-- [Why I'm doing this](#why-im-doing-this)
-- [Reading](#reading)
 - [Markets and limit order books](#markets-and-limit-order-books)
 - [The Glosten–Milgrom model](#the-glostenmilgrom-model)
 - [Notes on inventory](#notes-on-inventory)
-
-## Why I'm doing this
-
-My goal in this project is to deliver a GitHub repo and set of experiments that involve:
-- A **matching engine** --- accepts limit orders, market orders, etc and emits trades
-- A **market simulator** --- something that generates order flow from artificial participants which include "noise traders" (random orders, think your average Robinhood guy) and "informed traders" (those who can see and predict price movement, think big shops)
-- A **market-making agent** --- an agent that quotes a bid, ask, earns the spread, and manages the inventory
-
-I summarized some key points of my readings below in further detail than on the front page.
 
 ## Markets and limit order books
 

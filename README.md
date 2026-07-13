@@ -4,15 +4,22 @@
 
 ## abstract
 
-`orderbook-lab` is a limit order book, market simulator, and market-making experiment. I attempt to build a price-time-priority matching engine (users can submit limit orders, market orders, and cancels), simulate a synthetic market of noise and informed traders driven by a latent random-walk fair value, and three market makers of increasing sophistication: a fixed-spread baseline (MM v0), one that takes inventory into account (MM v1), and one that also widens its spread to counter adverse selection losses (MM v2). I decompose each MM's profit into spread capture versus adverse-selection loss as the share of informed flow rises to see how they perform against "expert" traders. The results show that the the naive maker earns 18K ticks in a pure-noise market but its PnL collapses to −157K once 20% of flow is informed; inventory skew and the toxicity filter combat all of that loss, still bringing in **+18k** even against informed traders. 
+My goal in this project is to deliver a GitHub repo and set of experiments that involve:
+- A **matching engine** --- accepts limit orders, market orders, etc and emits trades
+- A **market simulator** --- something that generates order flow from artificial participants which include "noise traders" (random orders, think your average Robinhood guy) and "informed traders" (those who can see and predict price movement, think big shops)
+- A **market-making agent** --- an agent that quotes a bid, ask, earns the spread, and manages the inventory
+    - specifically, I introduce three separate market makers -- a naive one, one that takes into account inventory, and one that tries to combat adverse selection losses against informed traders.
+
+The results are pretty cool. The naive maker's profit collapses when 20% of flow is informed, but the improved market makers combat that loss, still bringing in revenue against informed traders. 
 
 **highlights**
 
+
 - 42 successful tests (`pytest`) --- matching-engine correctness, the exact PnL identity, and simulator determinism.
-- Experiment: 3 market makers × 4 informed-flow levels ($p \in \{0, 0.05, 0.1, 0.2\}$) × 10 seeds → 3 figures and a decomposition table.
-- Matching engine: price-time priority, `dict`-of-`deque` price levels, a `heapq` price index with lazy deletion, and O(1) cancel by id.
-- Simulator: latent random-walk fair value, Poisson noise arrivals plus look-ahead informed traders, fully seeded and byte-for-byte reproducible.
-- Analysis: an exact spread / inventory / adverse-selection PnL decomposition, split by counterparty (noise vs. informed) --- a number a real desk can't cleanly measure, but this sim can, because it tags the informed orders.
+- experiment: 3 market makers, 4 informed-flow levels ($p \in \{0, 0.05, 0.1, 0.2\}$) × 10 seeds → 3 figures and a decomposition table.
+- matching engine: price-time priority, `dict`-of-`deque` price levels, a `heapq` price index with lazy deletion, and O(1) cancel by id.
+- simulator: latent random-walk fair value, Poisson noise arrivals plus look-ahead informed traders, fully seeded and byte-for-byte reproducible!
+- analysis: an exact spread / inventory / adverse-selection PnL decomposition, split by counterparty (noise vs. informed)
 
 ![Final PnL vs informed-trader probability](experiments/final_pnl_vs_p.png)
 
