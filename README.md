@@ -4,34 +4,49 @@
 
 A from-scratch limit order book, market simulator, and market-making experiment.
 
-## Abstract
+## abstract
 
-`orderbook-lab` is a from-scratch **limit order book**, **market simulator**, and **market-making experiment**. I built a price-time-priority matching engine (limit orders, market orders, cancels), a synthetic market of *noise* and *informed* traders driven by a latent random-walk fair value, and three market makers of increasing sophistication: a fixed-spread baseline (MM0), an inventory-skewing maker (MM1), and one that also widens its spread when order flow turns toxic (MM2). The experiment decomposes each maker's profit into **spread capture** versus **adverse-selection loss** as the share of informed flow rises. The headline result: the naive maker earns **+18k ticks** in a pure-noise market but its PnL **collapses to −157k** once 20% of flow is informed; inventory skew and the toxicity filter recover essentially all of that loss, holding near **+18k** at every level.
+`orderbook-lab` is a from-scratch **limit order book**, **market simulator**, and **market-making experiment**. I built a price-time-priority matching engine (limit orders, market orders, cancels), a synthetic market of *noise* and *informed* traders driven by a latent random-walk fair value, and three market makers of increasing sophistication: a fixed-spread baseline (MM0), an inventory-skewing maker (MM1), and one that also widens its spread when order flow turns toxic (MM2). The experiment decomposes each maker's profit into **spread capture** versus **adverse-selection loss** as the share of informed flow rises. The results show that the the naive maker earns **+18k ticks** in a pure-noise market but its PnL **collapses to −157k** once 20% of flow is informed; inventory skew and the toxicity filter recover essentially all of that loss, holding near **+18k** at every level.
 
 **Highlights**
 
-- **42 tests, all green** (`pytest`) --- matching-engine correctness, the exact PnL identity, and simulator determinism.
-- **Experiment:** 3 market makers × 4 informed-flow levels ($p \in \{0, 0.05, 0.1, 0.2\}$) × 10 seeds → 3 figures and a decomposition table.
-- **Matching engine:** price-time priority, `dict`-of-`deque` price levels, a `heapq` price index with lazy deletion, and O(1) cancel by id.
-- **Simulator:** latent random-walk fair value, Poisson noise arrivals plus look-ahead informed traders, fully seeded and byte-for-byte reproducible.
-- **Analysis:** an exact spread / inventory / adverse-selection PnL decomposition, split by counterparty (noise vs. informed) --- a number a real desk can't cleanly measure, but this sim can, because it tags the informed orders.
+- 42 successful tests (`pytest`) --- matching-engine correctness, the exact PnL identity, and simulator determinism.
+- Experiment: 3 market makers × 4 informed-flow levels ($p \in \{0, 0.05, 0.1, 0.2\}$) × 10 seeds → 3 figures and a decomposition table.
+- Matching engine: price-time priority, `dict`-of-`deque` price levels, a `heapq` price index with lazy deletion, and O(1) cancel by id.
+- Simulator: latent random-walk fair value, Poisson noise arrivals plus look-ahead informed traders, fully seeded and byte-for-byte reproducible.
+- Analysis: an exact spread / inventory / adverse-selection PnL decomposition, split by counterparty (noise vs. informed) --- a number a real desk can't cleanly measure, but this sim can, because it tags the informed orders.
 
 ![Final PnL vs informed-trader probability](experiments/final_pnl_vs_p.png)
 
 ## Table of contents
-- [Background](#background)
-- [Part 1: matching engine](#part-1-matching-engine)
-- [Part 2: market simulator](#part-2-market-simulator)
+- [background](#background)
+- [part 1: matching engine](#part-1-matching-engine)
+- [part 2: market simulator](#part-2-market-simulator)
 - [Part 3: market maker](#part-3-market-maker)
-- [Experiment setup and procedure](#experiment-setup-and-procedure)
-- [Results and discussion](#results-and-discussion)
-- [What I'd build next](#what-id-build-next)
+- [experiment setup and procedure](#experiment-setup-and-procedure)
+- [results and discussion](#results-and-discussion)
+- [what I'd build next](#what-id-build-next)
 
 Full background notes --- why I built this, an order-book primer, the Glosten–Milgrom derivation, and Avellaneda–Stoikov inventory notes --- live in [BACKGROUND.md](BACKGROUND.md).
 
-## Background
+## background
 
-The essentials needed to follow the project (fuller notes in [BACKGROUND.md](BACKGROUND.md)):
+Why I'm doing this: I read recently about market-makers in Matt Levine's *Money Things* newsletter, which I have been reading over coffee in the morning. This is a nice way to explore that technically + get a quant project going.
+
+Also, such a project seemed relevant since I've seen a fair share of "things to build for quant finance" in my reels. That prompted some research out of me; by research, I mean asking Claude what this was about, talking to some friends at Citadel/HRT, and finally, concluding that this project would be productive for my own learning and career goals.
+
+## Reading
+
+Before I began building this, I wanted to have a deeper understanding of the fundamentals at play. So I read the following materials, in no intentional order:
+- Jean-Philippe Bouchard, *Trades, Quotes, and Prices*, chapters 3-5
+- Marco Avellaneda and Sasha Stoikov, *High-freqency trading in a limit order book*
+- Kris Machowski, *An Introduction to Limit Order Books*
+- Crypt0Grapher on Substack, *Lecture 4: The Glosten-Milgrom Market Maker*
+- Optiver, *Orders and the order book*
+- Wikipedia, *Central limit order book*
+- B2Broker, *What is a Limit Order Book?*
+
+The essentials needed to follow the project (complete notes in [BACKGROUND.md](BACKGROUND.md)):
 
 - A **limit order book** matches buyers (**bids**) and sellers (**asks**) by **price-time priority**. The gap between the best bid and best ask is the **spread**; its midpoint is the **mid**.
 - A **market maker** quotes both sides and earns the spread from uninformed **noise** flow. It loses to **informed** traders who know where the price is headed --- this is **adverse selection**. The Glosten–Milgrom insight: *the spread is an insurance premium against informed flow* --- more informed traders, wider spread.

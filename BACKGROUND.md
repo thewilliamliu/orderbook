@@ -18,22 +18,7 @@ My goal in this project is to deliver a GitHub repo and set of experiments that 
 - A **market simulator** --- something that generates order flow from artificial participants which include "noise traders" (random orders, think your average Robinhood guy) and "informed traders" (those who can see and predict price movement, think big shops)
 - A **market-making agent** --- an agent that quotes a bid, ask, earns the spread, and manages the inventory
 
-Why I'm doing this: I read recently about market-makers in Matt Levine's *Money Things* newsletter, which I have been reading over coffee in the morning. This is a nice way to explore that technically + get a quant project going.
-
-Also, such a project seemed relevant since I've seen a fair share of "things to build for quant finance" in my reels. That prompted some research out of me; by research, I mean asking Claude what this was about, talking to some friends at Citadel/HRT, and finally, concluding that this project would be productive for my own learning and career goals.
-
-## Reading
-
-Before I began building this, I wanted to have a deeper understanding of the fundamentals at play. So I read the following materials, in no intentional order:
-- Jean-Philippe Bouchard, *Trades, Quotes, and Prices*, chapters 3-5
-- Marco Avellaneda and Sasha Stoikov, *High-freqency trading in a limit order book*
-- Kris Machowski, *An Introduction to Limit Order Books*
-- Crypt0Grapher on Substack, *Lecture 4: The Glosten-Milgrom Market Maker*
-- Optiver, *Orders and the order book*
-- Wikipedia, *Central limit order book*
-- B2Broker, *What is a Limit Order Book?*
-
-I summarized some key points of these readings below.
+I summarized some key points of my readings below in further detail than on the front page.
 
 ## Markets and limit order books
 
