@@ -1,8 +1,6 @@
-# orderbook-lab
+# orderbook
 
-*William Liu* --- `July 2026`
-
-A from-scratch limit order book, market simulator, and market-making experiment.
+*William Liu* --- `07/2026`
 
 ## abstract
 
