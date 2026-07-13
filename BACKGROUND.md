@@ -2,7 +2,7 @@
 
 Longer-form notes I wrote while learning the material behind `orderbook-lab`, moved
 out of the main [README](README.md) to keep it focused. None of this is required to
-understand the code or the results — it's the conceptual grounding, in my own words.
+understand the code or the results, it's just more fluff I came up with
 
 ## Table of contents
 - [Markets and limit order books](#markets-and-limit-order-books)
